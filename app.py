@@ -14,6 +14,7 @@ import sys
 def detector_process(inQueue: mp.Queue, outQueue: mp.Queue, stop):
     from backend import DefectDetector
     defect_detector = DefectDetector.DefectDetector('mask_rcnn_models\\mask_rcnn_model.resnet101.h5')
+
     print('started')
     sys.stdout.flush()
     while not stop.is_set():
@@ -59,6 +60,7 @@ def recognize_request():
             coords.append((x1, y1, x2, y2))
         report['scores'] = result['scores']
         report['defects_coords'] = coords
+        report['defects_types'] = result['types']
         report['image'] = cv2.imencode('.jpg', result_img)
 
     msg = codecs.encode(pickle.dumps(report), "base64").decode()
