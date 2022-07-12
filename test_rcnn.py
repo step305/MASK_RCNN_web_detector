@@ -16,6 +16,7 @@ def calc_metrics(mask_rcnn_instance, model_file, iou_threshold=0.5):
     APs = []
     precisions_all = []
     # outputs = list()
+    misses = []
     for image_id in mask_rcnn_instance.dataset_test.image_ids:
         # load image, bounding boxes and masks for the image id
         image, image_meta, gt_class_id, gt_bbox, gt_mask = load_image_gt(mask_rcnn_instance.dataset_test,
@@ -29,15 +30,17 @@ def calc_metrics(mask_rcnn_instance, model_file, iou_threshold=0.5):
         # extract results for first sample
         r = yhat[0]
         # calculate statistics, including AP
-        AP, precisions, recalls, overlaps = compute_ap(gt_bbox, gt_class_id, gt_mask, r["rois"], r["class_ids"],
-                                                       r["scores"], r['masks'],
-                                                       iou_threshold=iou_threshold)
+        AP, precisions, recalls, overlaps, miss = compute_ap(gt_bbox, gt_class_id, gt_mask, r["rois"], r["class_ids"],
+                                                             r["scores"], r['masks'],
+                                                             iou_threshold=iou_threshold)
+        misses.append(miss)
         # store
         APs.append(AP)
         precisions_all.append(precisions)
     # calculate the mean AP across all images
+
     mAP = np.mean(APs)
-    return mAP, APs, precisions_all
+    return mAP, APs, precisions_all, np.mean(misses)
 
 
 if __name__ == '__main__':
@@ -47,8 +50,9 @@ if __name__ == '__main__':
     train_maskrcnn.load_dataset("dataset")
     # model_files = sorted([os.path.join(model_path, file_name) for file_name in os.listdir(model_path)])
     # train_maskrcnn.evaluate_model(model_path)
-    result50 = calc_metrics(train_maskrcnn, model_file=model_path, iou_threshold=0.5)
+    result50 = calc_metrics(train_maskrcnn, model_file=model_path, iou_threshold=0.3)
     result75 = calc_metrics(train_maskrcnn, model_file=model_path, iou_threshold=0.75)
+    print([np.mean(i) for i in result50[2]])
     print('mAP50 = ' + str(result50[0]))
     print('APs50 = ' + str(result50[1]))
     print('mAP75 = ' + str(result75[0]))
