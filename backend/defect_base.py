@@ -2,13 +2,14 @@ import datetime
 import pickle
 import sqlite3
 import cv2
-import defects
+from backend import defects
 from reportlab.pdfgen import canvas
 from reportlab.graphics import renderPDF
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.lib.utils import ImageReader
 from svglib.svglib import svg2rlg
 import io
 
@@ -31,7 +32,7 @@ def footer(canvas, date, width, page):
                                                               date.year))
     canvas.drawCentredString(width / 2, 60, 'ООО СК-"Роботикс"')
     canvas.drawCentredString(width / 2, 20, 'стр. {}'.format(page))
-    canvas.line(width / 2 - 150, 53, width / 2 + 150, 33)
+    canvas.line(width / 2 - 150, 53, width / 2 + 150, 53)
 
 
 class DefectsBase:
@@ -76,22 +77,27 @@ class DefectsBase:
 
     def get(self, aircraft_name, aircraft_serial):
         self.cursor = self.db_connection.cursor()
-        sql_req = 'SELECT defect_data, MAX(date) FROM defects WHERE airplane_name=? AND air_plane_serial=?;'
+        sql_req = 'SELECT MAX(date) FROM defects WHERE airplane_name=? AND air_plane_serial=?;'
         self.cursor.execute(sql_req, (aircraft_name, aircraft_serial))
+        date, = self.cursor.fetchone()
+
+        sql_req = 'SELECT defect_data FROM defects WHERE airplane_name=? AND air_plane_serial=? AND date=?;'
+        self.cursor.execute(sql_req, (aircraft_name, aircraft_serial, date))
         defects_resp = self.cursor.fetchall()
+        date = datetime.datetime.strptime(date.split('.')[0], '%Y-%m-%d %H:%M:%S')
 
         air_craft = defects.AirCraftDefectsList(aircraft_serial, aircraft_name)
+        air_craft.date = date
         for defect_resp in defects_resp:
-            defect_pickled, date = defect_resp
+            defect_pickled, = defect_resp
             defect = pickle.loads(defect_pickled)
             air_craft.defects.append(defect)
-            air_craft.date = date
 
         return air_craft
 
     def report(self, aircraft_name, aircraft_serial):
         air_craft = self.get(aircraft_name, aircraft_serial)
-        pdfmetrics.registerFont(TTFont('GOST', 'GOSTtypeB.ttf'))
+        pdfmetrics.registerFont(TTFont('GOST', 'backend\\GOSTtypeB.ttf'))
 
         pdf_canvas = canvas.Canvas('air_craft_{}_serial_{}.pdf'.format(aircraft_name, aircraft_serial), pagesize=A4)
         width, height = A4
@@ -110,15 +116,14 @@ class DefectsBase:
         total_defects = [len(defect.types) for defect in air_craft.defects]
         count_defects = sum(total_defects)
 
-        pdf_canvas.drawString(75, 650, 'Обнаружено дефектов: {}'.format(count_defects))
+        pdf_canvas.drawString(75, 650, 'Обнаружено дефектов: {} на {} кадрах'.format(count_defects, len(total_defects)))
         pdf_canvas.showPage()
 
         for defect in air_craft.defects:
-            ret, buffer = cv2.imencode('.jpg', defect.image)
-            io_buf = io.BytesIO(buffer)
-            io_buf.seek(0)
-            pic = svg2rlg(io_buf)
-            renderPDF.draw(pic, pdf_canvas, 40, 100)
+            pdf_canvas.setFont('GOST', size=14)
+            cv2.imwrite('temp.jpg', cv2.resize(defect.image, (int(width)-100, int(3*height/4))))
+            pic = ImageReader('temp.jpg')
+            pdf_canvas.drawImage(pic, 40, 100)
             page_num += 1
             footer(pdf_canvas, report_day, width, page_num)
             pdf_canvas.showPage()

@@ -1,5 +1,5 @@
 import datetime
-import DefectDetector
+from backend import DefectDetector
 import cv2
 
 defect_detector = DefectDetector.DefectDetector('mask_rcnn_models\\mask_rcnn_model.resnet101.h5')
@@ -14,15 +14,16 @@ class DefectFrame:
 
     def detect(self):
         found = False
-        img_re, result = defect_detector.detect(cv2.resize(self.image, (600, 600)))
-        if len(result['coords']) > 0:
-            self.boxes = result['coords']
-            self.scores = result['scores']
-            self.types = result['types']
-            self.image = img_re
-            found = True
-        else:
-            self.image = None
+        if self.image.size > 0:
+            img_re, result = defect_detector.detect(cv2.resize(self.image, (600, 600)))
+            if len(result['coords']) > 0:
+                self.boxes = result['coords']
+                self.scores = result['scores']
+                self.types = result['types']
+                self.image = img_re
+                found = True
+            else:
+                self.image = None
         return found
 
 
