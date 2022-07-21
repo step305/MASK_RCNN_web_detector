@@ -38,8 +38,8 @@ def footer(canvas, date, width, page):
 class DefectsBase:
     def __init__(self, path_to_base='defects_base.db'):
         try:
-            self.db_connection =sqlite3.connect(path_to_base)
-            self.cursor =self.db_connection.cursor()
+            self.db_connection = sqlite3.connect(path_to_base)
+            self.cursor = self.db_connection.cursor()
             sql_req = 'CREATE TABLE IF NOT EXISTS airplanes (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT DEFAULT 0,' \
                       'name TEXT NOT NULL,' \
                       'serial TEXT NOT NULL,' \
@@ -96,6 +96,8 @@ class DefectsBase:
         return air_craft
 
     def report(self, aircraft_name, aircraft_serial):
+        defects_table = {'Type_1': 'не определен', 'Type_2': '"трещины"', 'Type_3': '"риски"', 'Type_4': '"вмятины"',
+                         'Type_5': '"коррозия"'}
         air_craft = self.get(aircraft_name, aircraft_serial)
         pdfmetrics.registerFont(TTFont('GOST', 'backend\\GOSTtypeB.ttf'))
 
@@ -121,9 +123,19 @@ class DefectsBase:
 
         for defect in air_craft.defects:
             pdf_canvas.setFont('GOST', size=14)
-            cv2.imwrite('temp.jpg', cv2.resize(defect.image, (int(width)-100, int(3*height/4))))
+            cv2.imwrite('temp.jpg', cv2.resize(defect.image, (int(width) - 100, int(height / 2))))
             pic = ImageReader('temp.jpg')
-            pdf_canvas.drawImage(pic, 40, 100)
+            pdf_canvas.drawImage(pic, 50, 100)
+            uniq_defects = {i: defect.types.count(i) for i in defect.types}
+            str_defects = []
+            for defect_type in uniq_defects.keys():
+                str_defects.append('дефектов типа {} - {}'.format(defects_table[defect_type],
+                                                                  uniq_defects[defect_type]))
+            pdf_canvas.drawString(75, 710, 'Обнаружено дефектов:')
+            y = 710 - 20
+            for line in str_defects:
+                pdf_canvas.drawString(100, y, '{}'.format(line))
+                y -= 20
             page_num += 1
             footer(pdf_canvas, report_day, width, page_num)
             pdf_canvas.showPage()

@@ -4,8 +4,12 @@ import cv2
 
 
 if __name__ == '__main__':
-    images = [cv2.imread('test.JPG'), cv2.imread('test0.jpg'), cv2.imread('test2.JPG'), cv2.imread('test3.png'),
-              cv2.imread('test4.jpg')]
+    images = [cv2.imread('test_car\\IMG_20220622_162225.jpg'),
+              cv2.imread('test_car\\IMG_20220622_162243.jpg'),
+              cv2.imread('test_car\\IMG_20220622_162218.jpg'),
+              cv2.imread('test_car\\IMG_20220622_162253.jpg'),
+              cv2.imread('test_car\\IMG_20220622_162313.jpg'),
+              cv2.imread('test0.jpg')]
     air_craft = defects.AirCraftDefectsList('#1', 'самолет')
     for img in images:
         air_craft.add(img)
