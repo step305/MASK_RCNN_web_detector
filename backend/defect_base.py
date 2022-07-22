@@ -67,10 +67,12 @@ class DefectsBase:
         for defect in aircraft_defects_list.defects:
             sql_req = 'INSERT INTO defects (airplane_name, air_plane_serial, date, defect_data, comment) ' \
                       'VALUES (?, ?, ?, ?, ?);'
+            jpeg_defect = defect
+            _, jpeg_defect.image = cv2.imencode('.jpg', jpeg_defect.image)
             self.cursor.execute(sql_req, (aircraft_defects_list.name,
                                           aircraft_defects_list.serial_num,
                                           aircraft_defects_list.date,
-                                          pickle.dumps(defect),
+                                          pickle.dumps(jpeg_defect),
                                           ''))
         self.db_connection.commit()
         self.cursor.close()
@@ -91,6 +93,7 @@ class DefectsBase:
         for defect_resp in defects_resp:
             defect_pickled, = defect_resp
             defect = pickle.loads(defect_pickled)
+            defect.image = cv2.imdecode(defect.image, cv2.IMREAD_COLOR)
             air_craft.defects.append(defect)
 
         return air_craft
