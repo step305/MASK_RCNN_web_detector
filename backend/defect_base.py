@@ -68,7 +68,7 @@ class DefectsBase:
             sql_req = 'INSERT INTO defects (airplane_name, air_plane_serial, date, defect_data, comment) ' \
                       'VALUES (?, ?, ?, ?, ?);'
             jpeg_defect = defect
-            _, jpeg_defect.image = cv2.imencode('.jpg', jpeg_defect.image)
+            _, jpeg_defect.img = cv2.imencode('.jpg', jpeg_defect.img)
             self.cursor.execute(sql_req, (aircraft_defects_list.name,
                                           aircraft_defects_list.serial_num,
                                           aircraft_defects_list.date,
@@ -93,7 +93,7 @@ class DefectsBase:
         for defect_resp in defects_resp:
             defect_pickled, = defect_resp
             defect = pickle.loads(defect_pickled)
-            defect.image = cv2.imdecode(defect.image, cv2.IMREAD_COLOR)
+            defect.img = cv2.imdecode(defect.img, cv2.IMREAD_COLOR)
             air_craft.defects.append(defect)
 
         return air_craft
@@ -126,7 +126,7 @@ class DefectsBase:
 
         for defect in air_craft.defects:
             pdf_canvas.setFont('GOST', size=14)
-            cv2.imwrite('temp.jpg', cv2.resize(defect.image, (int(width) - 100, int(height / 2))))
+            cv2.imwrite('temp.jpg', cv2.resize(defect.img, (int(width) - 100, int(height / 2))))
             pic = ImageReader('temp.jpg')
             pdf_canvas.drawImage(pic, 50, 100)
             uniq_defects = {i: defect.types.count(i) for i in defect.types}
